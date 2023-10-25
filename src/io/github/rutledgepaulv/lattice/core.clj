@@ -5,12 +5,13 @@
     implements the `ComputedNodes` protocol and either the `ComputedSuccessors`
     or `ComputedPredecessors` protocols. A default implementation is included for
     maps in adjacency form."
-  (:require [io.github.rutledgepaulv.lattice.protocols :as protos]
+  (:require [clojure.core.async :as async]
+            [io.github.rutledgepaulv.lattice.protocols :as protos]
             [io.github.rutledgepaulv.lattice.process :as proc]
             [io.github.rutledgepaulv.lattice.combinators :as combinators]
             [io.github.rutledgepaulv.lattice.impls.abstract]
             [io.github.rutledgepaulv.lattice.impls.concrete])
-  (:refer-clojure :exclude [ancestors descendants]))
+  (:refer-clojure :exclude [ancestors descendants reduce]))
 
 (defn optimize
   "Returns a graph with the same semantics but that may be optimized
@@ -181,15 +182,62 @@
   [graph node]
   (protos/descendants graph node))
 
-(defn async-reduce-and-combine
-  "Returns a core.async channel producing a map containing the result of the reduction,
+(defn reduce
+  "Returns the output channel which will receive maps containing the state of the reduction,
    the nodes that were visited, the nodes that were skipped, and the errors that were
-   encountered."
-  [graph init reducer combiner]
-  (proc/async-reduce-and-combine graph init reducer combiner))
+   encountered. Reducer will run on the core.async dispatch thread pool and must return
+   the new state after incorporating a node.
 
-(defn blocking-reduce-and-combine
-  "Returns a map containing the result of the reduction, the nodes that were visited,
-   the nodes that were skipped, and the errors that were encountered."
-  [graph init reducer combiner]
-  (proc/blocking-reduce-and-combine graph init reducer combiner))
+   Should be used for computation parallelism."
+  ([graph reducer]
+   (reduce graph reducer {}))
+  ([graph reducer init]
+   (let [output-chan (async/chan)]
+     (reduce graph reducer init output-chan)
+     (proc/final-chan output-chan)))
+  ([graph reducer init output-chan]
+   (reduce graph reducer init output-chan true))
+  ([graph reducer init output-chan close?]
+   (reduce graph reducer init output-chan close? combinators/deep-merge))
+  ([graph reducer init output-chan close? combiner]
+   (proc/reduce-and-combine graph (proc/computational-applicator reducer) init output-chan close? combiner)))
+
+(defn reduce-async
+  "Returns the output channel which will receive maps containing the state of the reduction,
+   the nodes that were visited, the nodes that were skipped, and the errors that were
+   encountered. Reducer runs on the core.async dispatch thread pool and must return a
+   channel that will eventually produce the state of having incorporated the node.
+
+   Should be used for parallelism with non-blocking tasks."
+  ([graph reducer]
+   (reduce-async graph reducer {}))
+  ([graph reducer init]
+   (let [output-chan (async/chan)]
+     (reduce-async graph reducer init output-chan)
+     (proc/final-chan output-chan)))
+  ([graph reducer init output-chan]
+   (reduce-async graph reducer init output-chan true))
+  ([graph reducer init output-chan close?]
+   (reduce-async graph reducer init output-chan close? combinators/deep-merge))
+  ([graph reducer init output-chan close? combiner]
+   (proc/reduce-and-combine graph (proc/async-applicator reducer) init output-chan close? combiner)))
+
+(defn reduce-blocking
+  "Returns the output channel which will receive maps containing the state of the reduction,
+   the nodes that were visited, the nodes that were skipped, and the errors that were
+   encountered. Reducer runs on dedicated thread and should return the new state after
+   incorporating a node.
+
+   Should be used for parallelism with blocking tasks."
+  ([graph reducer]
+   (reduce-blocking graph reducer {}))
+  ([graph reducer init]
+   (let [output-chan (async/chan)]
+     (reduce-blocking graph reducer init output-chan)
+     (proc/final-chan output-chan)))
+  ([graph reducer init output-chan]
+   (reduce-blocking graph reducer init output-chan true))
+  ([graph reducer init output-chan close?]
+   (reduce-blocking graph reducer init output-chan close? combinators/deep-merge))
+  ([graph reducer init output-chan close? combiner]
+   (proc/reduce-and-combine graph (proc/blocking-applicator reducer) init output-chan close? combiner)))
