@@ -4,7 +4,7 @@ An elegant library for working with directed graphs in Clojure.
 
 ---
 
-## Usage
+## Basic Usage
 
 Lattice [implements the necessary protocols for IPersistentMap](./src/io/github/rutledgepaulv/lattice/impls/concrete.clj),
 so you can start using it with adjacency maps right away.
@@ -28,6 +28,43 @@ so you can start using it with adjacency maps right away.
 
 (lattice/inverse graph)
 ; => {1 #{:a}, 3 #{:b :a}, 2 #{:a}, :b #{}, :a #{}}
+```
+
+## Concurrent Reductions
+
+Graphs are frequently used to express dependencies between nodes. It's
+useful to be able to process/reduce over those graphs in a way that
+respects dependencies. A naive approach linearly reduces over the
+topological sort, but for many graphs we can do much better than that.
+Lattice provides support for fork-join reductions that leverage
+parallelism between independent subgraphs.
+
+```clojure
+(require '[io.github.rutledgepaulv.lattice.core :as lattice])
+(require '[clojure.core.async :as async])
+
+; use lattice/reduce for computation tasks
+; use lattice/reduce-async for async tasks
+; use lattice/reduce-blocking for blocking tasks
+
+(async/<!!
+  (lattice/reduce
+    {:a [:b :c :d] :d [:b]}
+    (fn [state node]
+      (assoc-in state [node] state))))
+
+; =>
+; you can see we fork after processing :a
+; so :c and :d can process simultaneously
+; then, once :d is done, we can process :b
+
+#_{:errors  {}
+   :pending #{}
+   :visited #{:a :b :c :d}
+   :result  {:a {}
+             :c {:a {}}
+             :d {:a {}}
+             :b {:a {} :d {:a {}}}}}
 ```
 
 ## Extensions

@@ -49,7 +49,6 @@
                 output-chan
                 {:result  result'
                  :errors  errors
-                 :graph   graph
                  :visited visited'
                  :pending (sets/difference (protos/nodes graph) visited' (set (keys errors)))})
             (let [pending' (reduce
@@ -70,14 +69,14 @@
                 output-chan
                 {:result  result
                  :errors  errors'
-                 :graph   graph
                  :visited visited
                  :pending (sets/difference (protos/nodes graph) visited (set (keys errors)))})
             (if (not-empty pending')
               (recur result visited pending' errors')
               (when close? (async/close! output-chan)))
             (doseq [[_ chan] pending']
-              (async/close! chan))))))))
+              (async/close! chan)))))))
+  output-chan)
 
 (defn final-chan [chan]
   (async/go-loop [prev {}]
