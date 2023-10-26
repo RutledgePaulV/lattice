@@ -185,3 +185,91 @@
     (and
       (sets/subset? (protos/nodes this) (protos/nodes other))
       (sets/subset? (protos/edges this) (protos/edges other)))))
+
+(extend-protocol protos/ComputeWithNode
+  Object
+  (with-node [this node-to-add]
+    (reify
+      protos/ComputedNodes
+      (nodes [_]
+        (conj (protos/nodes this) node-to-add))
+      protos/ComputedSuccessors
+      (successors [_ node]
+        (protos/successors this node))
+      protos/ComputedPredecessors
+      (predecessors [_ node]
+        (protos/predecessors this node)))))
+
+(extend-protocol protos/ComputeWithEdge
+  Object
+  (with-edge [this source sink]
+    (reify
+      protos/ComputedNodes
+      (nodes [_]
+        (conj (protos/nodes this) source sink))
+      protos/ComputedSuccessors
+      (successors [_ node]
+        (if (= node source)
+          (conj (protos/successors this node) sink)
+          (protos/successors this node)))
+      protos/ComputedPredecessors
+      (predecessors [_ node]
+        (if (= node sink)
+          (conj (protos/predecessors this node) source)
+          (protos/predecessors this node))))))
+
+(extend-protocol protos/ComputeWithoutNode
+  Object
+  (without-node [this node-to-remove]
+    (reify
+      protos/ComputedNodes
+      (nodes [_]
+        (disj (protos/nodes this) node-to-remove))
+      protos/ComputedSuccessors
+      (successors [_ node]
+        (if (= node node-to-remove)
+          #{}
+          (disj (protos/successors this node) node-to-remove)))
+      protos/ComputedPredecessors
+      (predecessors [_ node]
+        (if (= node node-to-remove)
+          #{}
+          (disj (protos/predecessors this node) node-to-remove))))))
+
+(extend-protocol protos/ComputeWithoutEdge
+  Object
+  (without-edge [this source sink]
+    (reify
+      protos/ComputedNodes
+      (nodes [_]
+        (protos/nodes this))
+      protos/ComputedSuccessors
+      (successors [_ node]
+        (if (= node source)
+          (disj (protos/successors this node) sink)
+          (protos/successors this node)))
+      protos/ComputedPredecessors
+      (predecessors [_ node]
+        (if (= node sink)
+          (disj (protos/predecessors this node) source)
+          (protos/predecessors this node))))))
+
+
+(extend-protocol protos/ComputeTopologicalSort
+  Object
+  (topological-sort [this]
+    (loop [result  []
+           graph   this
+           pending (protos/sources this)]
+      (if (empty? pending)
+        (when (empty? (protos/edges graph))
+          result)
+        (let [s   (first pending)
+              agg (reduce (fn [agg m]
+                            (let [g' (protos/without-edge (get-in agg [:graph]) s m)]
+                              (cond-> agg
+                                :always (assoc :graph g')
+                                (empty? (protos/inbound-edges g' m)) (update :pending conj m))))
+                          {:graph graph :pending (disj pending s)}
+                          (protos/successors graph s))]
+          (recur (conj result s) (:graph agg) (:pending agg)))))))

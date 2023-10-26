@@ -182,6 +182,31 @@
   [graph node]
   (protos/descendants graph node))
 
+(defn topological-sort
+  "Returns the topological sort of the graph if it is a DAG, else nil."
+  [graph]
+  (protos/topological-sort graph))
+
+(defn with-node
+  "Returns a new graph with the added node."
+  [graph node]
+  (protos/with-node graph node))
+
+(defn with-edge
+  "Returns a new graph with the added edge."
+  [graph source sink]
+  (protos/with-edge graph source sink))
+
+(defn without-node
+  "Returns a new graph without the node."
+  [graph node]
+  (protos/without-node graph node))
+
+(defn without-edge
+  "Returns a new graph without the edge."
+  [graph source sink]
+  (protos/without-edge graph source sink))
+
 (defn reduce
   "Returns the output channel which will receive maps containing the state of the reduction,
    the nodes that were visited, the nodes that were skipped, and the errors that were

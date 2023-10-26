@@ -129,3 +129,23 @@
 (defprotocol ComputedSubgraph
   (subgraph? [this other]
     "Returns true if the given graph is a subgraph of the other graph."))
+
+(defprotocol ComputeTopologicalSort
+  (topological-sort [this]
+    "Returns a lazy sequence of the nodes in topological order."))
+
+(defprotocol ComputeWithNode
+  (with-node [this node]
+    "Returns a new graph with the node added."))
+
+(defprotocol ComputeWithEdge
+  (with-edge [this source sink]
+    "Returns a new graph with the edge added."))
+
+(defprotocol ComputeWithoutNode
+  (without-node [this node]
+    "Returns a new graph with the node removed."))
+
+(defprotocol ComputeWithoutEdge
+  (without-edge [this source sink]
+    "Returns a new graph with the edge removed."))

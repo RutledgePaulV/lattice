@@ -57,14 +57,14 @@
 
   protos/ComputedOptimize
   (optimize [this]
-    (let [reversed (protos/inverse this)]
+    (let [reversed (delay (protos/inverse this))]
       (reify
         protos/ComputedNodes
         (nodes [_]
-          (protos/nodes reversed))
+          (protos/nodes (force reversed)))
         protos/ComputedSuccessors
         (successors [_ node]
           (protos/successors this node))
         protos/ComputedPredecessors
         (predecessors [_ node]
-          (protos/successors reversed node))))))
+          (protos/successors (force reversed) node))))))
