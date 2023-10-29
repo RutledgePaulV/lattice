@@ -5,7 +5,13 @@
    (assumed to be something that implements at least `nodes` and
    one of `successors` or `predecessors`). Default implementations
    of `successors` is also defined for IPersistentMap."
-  (:refer-clojure :exclude [ancestors descendants]))
+  (:refer-clojure :exclude [ancestors descendants complement]))
+
+
+; a java interface for marking reifications
+; so that we can implement print-dup and
+; print-method on reifications
+(definterface Graph)
 
 (defprotocol Edge
   "A protocol for defining an edge."
@@ -149,3 +155,41 @@
 (defprotocol ComputeWithoutEdge
   (without-edge [this source sink]
     "Returns a new graph with the edge removed."))
+
+(defprotocol ComputeFilterNodes
+  (filter-nodes [this pred]
+    "Returns a new graph with the nodes filtered according to pred."))
+
+(defprotocol ComputeTransitivePreservingFilterNodes
+  (transitive-preserving-filter-nodes [this pred]
+    "Returns a new graph with the nodes filtered according to pred."))
+
+(defprotocol ComputeMapNodes
+  (map-nodes [this f]
+    "Returns a new graph with the nodes transformed according to f."))
+
+(defprotocol ComputeMapcatNodes
+  (mapcat-nodes [this f]
+    "Returns a new graph with the nodes transformed according to f."))
+
+(defprotocol ComputeComplete
+  (complete [this]
+    "Returns a new graph with all possible edges added."))
+
+(defprotocol ComputeComplement
+  (complement [this]
+    "Returns a new graph which contains the same set of nodes and all the
+     edges which exist in the complete graph but not in the given graph."))
+
+(defprotocol ComputeBidirectional
+  (bidirectional [this]
+    "Returns a new graph with all edges reversed and added to the graph."))
+
+(defprotocol ComputeAncestorSubgraph
+  (ancestors-subgraph [this node]
+    "Returns the subgraph containing the given node and all of its ancestors."))
+
+(defprotocol ComputeDescendantSubgraph
+  (descendants-subgraph [this node]
+    "Returns the subgraph containing the given node and all of its descendants"))
+

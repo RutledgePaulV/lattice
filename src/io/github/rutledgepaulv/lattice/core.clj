@@ -11,7 +11,7 @@
             [io.github.rutledgepaulv.lattice.combinators :as combinators]
             [io.github.rutledgepaulv.lattice.impls.abstract]
             [io.github.rutledgepaulv.lattice.impls.concrete])
-  (:refer-clojure :exclude [ancestors descendants reduce]))
+  (:refer-clojure :exclude [ancestors descendants reduce complement]))
 
 (defn optimize
   "Returns a graph with the same semantics but that may be optimized
@@ -113,12 +113,12 @@
   (protos/transitive-closure graph))
 
 (defn bridges
-  "Returns the edges whose removal would alter the transitive closure of the graph."
+  "Returns the edges whose removal would introduce another connected component and alter the transitive closure."
   [graph]
   (protos/bridges graph))
 
 (defn components
-  "Returns the connected components in the given graph."
+  "Returns the connected component subgraphs of the given graph."
   [graph]
   (protos/components graph))
 
@@ -206,6 +206,74 @@
   "Returns a new graph without the edge."
   [graph source sink]
   (protos/without-edge graph source sink))
+
+(defn filter-nodes
+  "Returns a new graph containing only the nodes for which pred is truthy. Edges
+  connected to those nodes are also removed. If you want to preserve the transitive
+  closure of the graph, use `transitive-preserving-filter-nodes` instead."
+  [graph pred]
+  (protos/filter-nodes graph pred))
+
+(defn remove-nodes
+  "Returns a new graph without the nodes for which pred is truthy. Edges connected
+   to those nodes are also removed. If you want to preserve the transitive closure
+   of the graph, use `transitive-preserving-remove-nodes` instead."
+  [graph pred]
+  (protos/filter-nodes graph (clojure.core/complement pred)))
+
+(defn transitive-preserving-filter-nodes
+  "Returns a new graph containing only the nodes for which pred is truthy. Edges
+   involving any removed nodes are also removed but new edges are added in their
+   place to connect all predecessors and successors of the removed nodes."
+  [graph pred]
+  (protos/transitive-preserving-filter-nodes graph (clojure.core/complement pred)))
+
+(defn transitive-preserving-remove-nodes
+  "Returns a new graph without the nodes for which pred is truthy. Edges involving
+   the removed nodes are removed but new edges are added in their place to connect
+   all predecessors and successors of the removed nodes."
+  [graph pred]
+  (protos/transitive-preserving-filter-nodes graph pred))
+
+(defn map-nodes
+  "Returns a new graph with the nodes transformed according to f. Edges are retained
+  between the new nodes and the transformations of the original predecessors
+  and successors."
+  [graph f]
+  (protos/map-nodes graph f))
+
+(defn mapcat-nodes
+  "Returns a new graph where the nodes are replaced with zero or more nodes produced by applying f.
+   Edges are retained between the new nodes and the transformations of the original predecessors
+   and successors."
+  [graph f]
+  (protos/mapcat-nodes graph f))
+
+(defn complete
+  "Returns a new graph with all possible edges added."
+  [graph]
+  (protos/complete graph))
+
+(defn complement
+  "Returns a new graph which contains the same set of nodes and all the
+   edges which exist in the complete graph but not in the given graph."
+  [graph]
+  (protos/complement graph))
+
+(defn bidirectional
+  "Returns a new graph with all edges reversed and added to the graph."
+  [graph]
+  (protos/bidirectional graph))
+
+(defn descendants-subgraph
+  "Returns the subgraph containing the given node and all of its descendants."
+  [graph node]
+  (protos/descendants-subgraph graph node))
+
+(defn ancestors-subgraph
+  "Returns the subgraph containing the given node and all of its ancestors."
+  [graph node]
+  (protos/ancestors-subgraph graph node))
 
 (defn reduce
   "Returns the output channel which will receive maps containing the state of the reduction,

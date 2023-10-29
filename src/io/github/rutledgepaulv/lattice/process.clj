@@ -79,6 +79,7 @@
   output-chan)
 
 (defn final-chan [chan]
-  (async/go-loop [prev {}]
-    (let [next (async/<! chan)]
-      (if (some? next) (recur next) prev))))
+  (async/go-loop [previous nil]
+    (if-some [value (async/<! chan)]
+      (recur value)
+      previous)))
