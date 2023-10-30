@@ -5,7 +5,18 @@
    on the result of these functions to get an optimized version."
   (:require [clojure.set :as sets]
             [io.github.rutledgepaulv.lattice.protocols :as protos])
+  (:refer-clojure :exclude [empty])
   (:import (io.github.rutledgepaulv.lattice.protocols Graph)))
+
+(defn empty []
+  (reify
+    Graph
+    protos/ComputeNodes
+    (nodes [_] #{})
+    protos/ComputeSuccessors
+    (successors [_ node] #{})
+    protos/ComputePredecessors
+    (predecessors [_ node] #{})))
 
 (defn- combine [combinator graphs]
   (let [nodes (delay (reduce combinator (map protos/nodes graphs)))]

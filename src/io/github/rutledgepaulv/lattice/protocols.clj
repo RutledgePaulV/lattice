@@ -185,6 +185,10 @@
   (bidirectional [this]
     "Returns a new graph with all edges reversed and added to the graph."))
 
+(defprotocol ComputeComponentSubgraph
+  (component-subgraph [this node]
+    "Returns the subgraph containing the given node and all of its ancestors and descendants."))
+
 (defprotocol ComputeAncestorSubgraph
   (ancestors-subgraph [this node]
     "Returns the subgraph containing the given node and all of its ancestors."))

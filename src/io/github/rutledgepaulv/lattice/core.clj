@@ -11,7 +11,7 @@
             [io.github.rutledgepaulv.lattice.combinators :as combinators]
             [io.github.rutledgepaulv.lattice.impls.abstract]
             [io.github.rutledgepaulv.lattice.impls.concrete])
-  (:refer-clojure :exclude [ancestors descendants reduce complement]))
+  (:refer-clojure :exclude [ancestors descendants reduce complement empty]))
 
 (defn optimize
   "Returns a graph with the same semantics but that may be optimized
@@ -19,6 +19,11 @@
    for algorithms."
   [graph]
   (protos/optimize graph))
+
+(defn empty
+  "Returns an abstract empty graph. {} would be fine too."
+  []
+  (combinators/empty))
 
 (defn nodes
   "Returns the nodes of the graph as a set."
@@ -226,14 +231,14 @@
    involving any removed nodes are also removed but new edges are added in their
    place to connect all predecessors and successors of the removed nodes."
   [graph pred]
-  (protos/transitive-preserving-filter-nodes graph (clojure.core/complement pred)))
+  (protos/transitive-preserving-filter-nodes graph pred))
 
 (defn transitive-preserving-remove-nodes
   "Returns a new graph without the nodes for which pred is truthy. Edges involving
    the removed nodes are removed but new edges are added in their place to connect
    all predecessors and successors of the removed nodes."
   [graph pred]
-  (protos/transitive-preserving-filter-nodes graph pred))
+  (protos/transitive-preserving-filter-nodes graph (clojure.core/complement pred)))
 
 (defn map-nodes
   "Returns a new graph with the nodes transformed according to f. Edges are retained
@@ -264,6 +269,11 @@
   "Returns a new graph with all edges reversed and added to the graph."
   [graph]
   (protos/bidirectional graph))
+
+(defn component-subgraph
+  "Returns the subgraph containing the given node and any ancestors or descendants."
+  [graph node]
+  (protos/component-subgraph graph node))
 
 (defn descendants-subgraph
   "Returns the subgraph containing the given node and all of its descendants."

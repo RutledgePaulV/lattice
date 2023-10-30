@@ -6,6 +6,7 @@
    io.github.rutledgepaulv.lattice.impls.concrete namespace."
   (:refer-clojure :exclude [ancestors complement descendants])
   (:require [clojure.set :as sets]
+            [io.github.rutledgepaulv.lattice.combinators :as combinators]
             [io.github.rutledgepaulv.lattice.protocols :as protos])
   (:import (io.github.rutledgepaulv.lattice.protocols Graph)
            (java.io Writer)))
@@ -139,6 +140,28 @@
                   (remove results)
                   (protos/predecessors this node))))))))
 
+(extend-protocol protos/ComputeComponentSubgraph
+  Object
+  (component-subgraph [this node]
+    (if (contains? (protos/nodes this) node)
+      (let [nodes
+            (delay (sets/union
+                     (set (protos/descendants this node))
+                     (set (protos/ancestors this node))
+                     #{node}))]
+        (reify
+          Graph
+          protos/ComputeNodes
+          (nodes [_]
+            (force nodes))
+          protos/ComputeSuccessors
+          (successors [_ node]
+            (sets/intersection (force nodes) (protos/successors this node)))
+          protos/ComputePredecessors
+          (predecessors [_ node]
+            (sets/intersection (force nodes) (protos/predecessors this node)))))
+      (combinators/empty))))
+
 (extend-protocol protos/ComputeDescendantSubgraph
   Object
   (descendants-subgraph [this node]
@@ -155,7 +178,7 @@
           protos/ComputePredecessors
           (predecessors [_ node]
             (sets/intersection (force nodes) (protos/predecessors this node)))))
-      {})))
+      (combinators/empty))))
 
 (extend-protocol protos/ComputeAncestorSubgraph
   Object
@@ -173,7 +196,7 @@
           protos/ComputePredecessors
           (predecessors [_ node]
             (sets/intersection (force nodes) (protos/predecessors this node)))))
-      {})))
+      (combinators/empty))))
 
 (extend-protocol protos/ComputeRoot
   Object
