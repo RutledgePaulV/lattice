@@ -10,27 +10,27 @@
   (:import (io.github.rutledgepaulv.lattice.protocols Graph)
            (java.io Writer)))
 
-(extend-protocol protos/ComputedSuccessors
+(extend-protocol protos/ComputeSuccessors
   Object
   (successors [this node]
     (into #{} (filter (fn [other] (contains? (protos/predecessors this other) node))) (protos/nodes this))))
 
-(extend-protocol protos/ComputedPredecessors
+(extend-protocol protos/ComputePredecessors
   Object
   (predecessors [this node]
     (into #{} (filter (fn [other] (contains? (protos/successors this other) node))) (protos/nodes this))))
 
-(extend-protocol protos/ComputedInboundEdges
+(extend-protocol protos/ComputeInboundEdges
   Object
   (inbound-edges [this node]
     (set (map vector (protos/predecessors this node) (repeat node)))))
 
-(extend-protocol protos/ComputedOutboundEdges
+(extend-protocol protos/ComputeOutboundEdges
   Object
   (outbound-edges [this node]
     (set (map vector (repeat node) (protos/successors this node)))))
 
-(extend-protocol protos/ComputedAdjacency
+(extend-protocol protos/ComputeAdjacency
   Object
   (adjacency [this]
     (reduce
@@ -39,7 +39,7 @@
       {}
       (protos/nodes this))))
 
-(extend-protocol protos/ComputedEdges
+(extend-protocol protos/ComputeEdges
   Object
   (edges [this]
     (reduce
@@ -48,46 +48,46 @@
       #{}
       (protos/nodes this))))
 
-(extend-protocol protos/ComputedEdgesOf
+(extend-protocol protos/ComputeEdgesOf
   Object
   (edges-of [this node]
     (sets/union
       (protos/inbound-edges this node)
       (protos/outbound-edges this node))))
 
-(extend-protocol protos/ComputedDegree
+(extend-protocol protos/ComputeDegree
   Object
   (degree [this node]
     (count (protos/edges-of this node))))
 
-(extend-protocol protos/ComputedNeighbors
+(extend-protocol protos/ComputeNeighbors
   Object
   (neighbors [this node]
     (sets/union
       (protos/successors this node)
       (protos/predecessors this node))))
 
-(extend-protocol protos/ComputedSources
+(extend-protocol protos/ComputeSources
   Object
   (sources [this]
     (into #{} (filter (fn [node] (empty? (protos/predecessors this node)))) (protos/nodes this))))
 
-(extend-protocol protos/ComputedSinks
+(extend-protocol protos/ComputeSinks
   Object
   (sinks [this]
     (into #{} (filter (fn [node] (empty? (protos/successors this node)))) (protos/nodes this))))
 
-(extend-protocol protos/ComputedProducers
+(extend-protocol protos/ComputeProducers
   Object
   (producers [this]
     (into #{} (remove (fn [node] (protos/successors this node))) (protos/nodes this))))
 
-(extend-protocol protos/ComputedConsumers
+(extend-protocol protos/ComputeConsumers
   Object
   (consumers [this]
     (into #{} (remove (fn [node] (protos/predecessors this node))) (protos/nodes this))))
 
-(extend-protocol protos/ComputedInterior
+(extend-protocol protos/ComputeInterior
   Object
   (interior [this]
     (into #{}
@@ -97,38 +97,47 @@
                   (empty? (protos/predecessors this node)))))
           (protos/nodes this))))
 
-(extend-protocol protos/ComputedInverse
+(extend-protocol protos/ComputeInverse
   Object
   (inverse [this]
     (reify
       Graph
-      protos/ComputedNodes
+      protos/ComputeNodes
       (nodes [_]
         (protos/nodes this))
-      protos/ComputedSuccessors
+      protos/ComputeSuccessors
       (successors [_ node]
         (protos/predecessors this node))
-      protos/ComputedPredecessors
+      protos/ComputePredecessors
       (predecessors [_ node]
         (protos/successors this node)))))
 
-(extend-protocol protos/ComputedDescendants
+(extend-protocol protos/ComputeDescendants
   Object
   (descendants [this node]
-    (rest
-      (tree-seq
-        (comp not-empty (partial protos/successors this))
-        (partial protos/successors this)
-        node))))
+    (loop [results #{} frontier (protos/successors this node)]
+      (if (empty? frontier)
+        results
+        (let [node (first frontier)]
+          (recur
+            (conj results node)
+            (into (disj frontier node)
+                  (remove results)
+                  (protos/successors this node))))))))
 
-(extend-protocol protos/ComputedAncestors
+(extend-protocol protos/ComputeAncestors
   Object
   (ancestors [this node]
-    (rest
-      (tree-seq
-        (comp not-empty (partial protos/predecessors this))
-        (partial protos/predecessors this)
-        node))))
+    (loop [results  #{}
+           frontier (protos/predecessors this node)]
+      (if (empty? frontier)
+        results
+        (let [node (first frontier)]
+          (recur
+            (conj results node)
+            (into (disj frontier node)
+                  (remove results)
+                  (protos/predecessors this node))))))))
 
 (extend-protocol protos/ComputeDescendantSubgraph
   Object
@@ -137,13 +146,13 @@
       (let [nodes (delay (conj (set (protos/descendants this node)) node))]
         (reify
           Graph
-          protos/ComputedNodes
+          protos/ComputeNodes
           (nodes [_]
             (force nodes))
-          protos/ComputedSuccessors
+          protos/ComputeSuccessors
           (successors [_ node]
             (sets/intersection (force nodes) (protos/successors this node)))
-          protos/ComputedPredecessors
+          protos/ComputePredecessors
           (predecessors [_ node]
             (sets/intersection (force nodes) (protos/predecessors this node)))))
       {})))
@@ -155,43 +164,43 @@
       (let [nodes (delay (conj (set (protos/ancestors this node)) node))]
         (reify
           Graph
-          protos/ComputedNodes
+          protos/ComputeNodes
           (nodes [_]
             (force nodes))
-          protos/ComputedSuccessors
+          protos/ComputeSuccessors
           (successors [_ node]
             (sets/intersection (force nodes) (protos/successors this node)))
-          protos/ComputedPredecessors
+          protos/ComputePredecessors
           (predecessors [_ node]
             (sets/intersection (force nodes) (protos/predecessors this node)))))
       {})))
 
-(extend-protocol protos/ComputedRoot
+(extend-protocol protos/ComputeRoot
   Object
   (root [this]
     (first (protos/sources this))))
 
-(extend-protocol protos/ComputedBranches
+(extend-protocol protos/ComputeBranches
   Object
   (branches [this]
     (protos/producers this)))
 
-(extend-protocol protos/ComputedLeaves
+(extend-protocol protos/ComputeLeaves
   Object
   (leaves [this]
     (protos/sinks this)))
 
-(extend-protocol protos/ComputedParent
+(extend-protocol protos/ComputeParent
   Object
   (parent [this node]
     (first (protos/predecessors this node))))
 
-(extend-protocol protos/ComputedChildren
+(extend-protocol protos/ComputeChildren
   Object
   (children [this node]
     (protos/successors this node)))
 
-(extend-protocol protos/ComputedOptimize
+(extend-protocol protos/ComputeOptimize
   Object
   (optimize [this]
     (let [memoized-nodes        (memoize (fn [] (protos/nodes this)))
@@ -199,24 +208,24 @@
           memoized-predecessors (memoize (fn [node] (protos/predecessors this node)))]
       (reify
         Graph
-        protos/ComputedNodes
+        protos/ComputeNodes
         (nodes [_]
           (memoized-nodes))
-        protos/ComputedSuccessors
+        protos/ComputeSuccessors
         (successors [_ node]
           (memoized-successors node))
-        protos/ComputedPredecessors
+        protos/ComputePredecessors
         (predecessors [_ node]
           (memoized-predecessors node))))))
 
-(extend-protocol protos/ComputedSupergraph
+(extend-protocol protos/ComputeSupergraph
   Object
   (supergraph? [this other]
     (and
       (sets/superset? (protos/nodes this) (protos/nodes other))
       (sets/superset? (protos/edges this) (protos/edges other)))))
 
-(extend-protocol protos/ComputedSubgraph
+(extend-protocol protos/ComputeSubgraph
   Object
   (subgraph? [this other]
     (and
@@ -228,13 +237,13 @@
   (with-node [this node-to-add]
     (reify
       Graph
-      protos/ComputedNodes
+      protos/ComputeNodes
       (nodes [_]
         (conj (protos/nodes this) node-to-add))
-      protos/ComputedSuccessors
+      protos/ComputeSuccessors
       (successors [_ node]
         (protos/successors this node))
-      protos/ComputedPredecessors
+      protos/ComputePredecessors
       (predecessors [_ node]
         (protos/predecessors this node)))))
 
@@ -243,15 +252,15 @@
   (with-edge [this source sink]
     (reify
       Graph
-      protos/ComputedNodes
+      protos/ComputeNodes
       (nodes [_]
         (conj (protos/nodes this) source sink))
-      protos/ComputedSuccessors
+      protos/ComputeSuccessors
       (successors [_ node]
         (if (= node source)
           (conj (protos/successors this node) sink)
           (protos/successors this node)))
-      protos/ComputedPredecessors
+      protos/ComputePredecessors
       (predecessors [_ node]
         (if (= node sink)
           (conj (protos/predecessors this node) source)
@@ -262,15 +271,15 @@
   (without-node [this node-to-remove]
     (reify
       Graph
-      protos/ComputedNodes
+      protos/ComputeNodes
       (nodes [_]
         (disj (protos/nodes this) node-to-remove))
-      protos/ComputedSuccessors
+      protos/ComputeSuccessors
       (successors [_ node]
         (if (= node node-to-remove)
           #{}
           (disj (protos/successors this node) node-to-remove)))
-      protos/ComputedPredecessors
+      protos/ComputePredecessors
       (predecessors [_ node]
         (if (= node node-to-remove)
           #{}
@@ -281,15 +290,15 @@
   (without-edge [this source sink]
     (reify
       Graph
-      protos/ComputedNodes
+      protos/ComputeNodes
       (nodes [_]
         (protos/nodes this))
-      protos/ComputedSuccessors
+      protos/ComputeSuccessors
       (successors [_ node]
         (if (= node source)
           (disj (protos/successors this node) sink)
           (protos/successors this node)))
-      protos/ComputedPredecessors
+      protos/ComputePredecessors
       (predecessors [_ node]
         (if (= node sink)
           (disj (protos/predecessors this node) source)
@@ -326,15 +335,15 @@
     (let [memoized (memoize pred)]
       (reify
         Graph
-        protos/ComputedNodes
+        protos/ComputeNodes
         (nodes [_]
           (into #{} (filter memoized) (protos/nodes this)))
-        protos/ComputedSuccessors
+        protos/ComputeSuccessors
         (successors [_ node]
           (if (memoized node)
             (into #{} (filter memoized) (protos/successors this node))
             #{}))
-        protos/ComputedPredecessors
+        protos/ComputePredecessors
         (predecessors [_ node]
           (if (memoized node)
             (into #{} (filter memoized) (protos/predecessors this node))
@@ -358,10 +367,10 @@
                  (protos/nodes this)))]
       (reify
         Graph
-        protos/ComputedNodes
+        protos/ComputeNodes
         (nodes [_]
           (set (keys (:<- (force it)))))
-        protos/ComputedSuccessors
+        protos/ComputeSuccessors
         (successors [_ node]
           (let [old-nodes (get-in (force it) [:<- node] #{})]
             (into #{}
@@ -369,7 +378,7 @@
                     (mapcat (fn [node] (protos/successors this node)))
                     (mapcat (fn [old-node] (get-in (force it) [:-> old-node] #{}))))
                   old-nodes)))
-        protos/ComputedPredecessors
+        protos/ComputePredecessors
         (predecessors [_ node]
           (let [old-nodes (get-in (force it) [:<- node] #{})]
             (into #{}
@@ -383,18 +392,18 @@
   (transitive-preserving-filter-nodes [this pred]
     (protos/mapcat-nodes this (fn [node] (if (pred node) #{node} #{})))))
 
-(extend-protocol protos/ComputedTransitiveClosure
+(extend-protocol protos/ComputeTransitiveClosure
   Object
   (transitive-closure [this]
     (reify
       Graph
-      protos/ComputedNodes
+      protos/ComputeNodes
       (nodes [_]
         (protos/nodes this))
-      protos/ComputedSuccessors
+      protos/ComputeSuccessors
       (successors [_ node]
         (into #{} (protos/descendants this node)))
-      protos/ComputedPredecessors
+      protos/ComputePredecessors
       (predecessors [_ node]
         (into #{} (protos/ancestors this node))))))
 
@@ -404,16 +413,16 @@
     (let [nodes (delay (protos/nodes this))]
       (reify
         Graph
-        protos/ComputedNodes
+        protos/ComputeNodes
         (nodes [_]
           (force nodes))
-        protos/ComputedSuccessors
+        protos/ComputeSuccessors
         (successors [_ node]
           (let [the-nodes (force nodes)]
             (if (contains? the-nodes node)
               (disj the-nodes node)
               #{})))
-        protos/ComputedPredecessors
+        protos/ComputePredecessors
         (predecessors [_ node]
           (let [the-nodes (force nodes)]
             (if (contains? the-nodes node)
@@ -426,10 +435,10 @@
     (let [nodes (delay (protos/nodes this))]
       (reify
         Graph
-        protos/ComputedNodes
+        protos/ComputeNodes
         (nodes [_]
           (force nodes))
-        protos/ComputedSuccessors
+        protos/ComputeSuccessors
         (successors [_ node]
           (let [the-nodes (force nodes)]
             (if (contains? the-nodes node)
@@ -437,7 +446,7 @@
                 (disj the-nodes node)
                 (protos/successors this node))
               #{})))
-        protos/ComputedPredecessors
+        protos/ComputePredecessors
         (predecessors [_ node]
           (let [the-nodes (force nodes)]
             (if (contains? the-nodes node)
@@ -451,16 +460,31 @@
   (bidirectional [this]
     (reify
       Graph
-      protos/ComputedNodes
+      protos/ComputeNodes
       (nodes [_]
         (protos/nodes this))
-      protos/ComputedSuccessors
+      protos/ComputeSuccessors
       (successors [_ node]
         (sets/union (protos/successors this node) (protos/predecessors this node)))
-      protos/ComputedPredecessors
+      protos/ComputePredecessors
       (predecessors [_ node]
         (sets/union (protos/successors this node) (protos/predecessors this node))))))
 
+(extend-protocol protos/ComputeComponents
+  Object
+  (components [this]
+    (:results
+      (let [closure (protos/transitive-closure (protos/bidirectional this))]
+        (reduce
+          (fn [{:keys [seen] :as agg} node]
+            (if (contains? seen node)
+              agg
+              (let [component (conj (protos/successors closure node) node)]
+                (-> agg
+                    (update :results conj component)
+                    (update :seen sets/union component)))))
+          {:results #{} :seen #{}}
+          (protos/nodes this))))))
 
 (defmethod print-dup Graph [obj ^Writer writer]
   (print-dup (protos/adjacency obj) writer))

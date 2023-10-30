@@ -281,7 +281,7 @@
    encountered. Reducer will run on the core.async dispatch thread pool and must return
    the new state after incorporating a node.
 
-   Should be used for computation parallelism."
+   Should be used for parallelism with computational tasks."
   ([graph reducer]
    (reduce graph reducer {}))
   ([graph reducer init]
@@ -299,7 +299,7 @@
   "Returns the output channel which will receive maps containing the state of the reduction,
    the nodes that were visited, the nodes that were skipped, and the errors that were
    encountered. Reducer runs on the core.async dispatch thread pool and must return a
-   channel that will eventually produce the state of having incorporated the node.
+   single-use channel that will eventually produce the state of having incorporated the node.
 
    Should be used for parallelism with non-blocking tasks."
   ([graph reducer]

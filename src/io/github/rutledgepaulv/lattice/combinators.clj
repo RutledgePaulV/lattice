@@ -11,15 +11,15 @@
   (let [nodes (delay (reduce combinator (map protos/nodes graphs)))]
     (reify
       Graph
-      protos/ComputedNodes
+      protos/ComputeNodes
       (nodes [_]
         (force nodes))
-      protos/ComputedSuccessors
+      protos/ComputeSuccessors
       (successors [_ node]
         (if (contains? (force nodes) node)
           (reduce combinator (map (fn [graph] (into #{} (filter (force nodes)) (protos/successors graph node))) graphs))
           #{}))
-      protos/ComputedPredecessors
+      protos/ComputePredecessors
       (predecessors [_ node]
         (if (contains? (force nodes) node)
           (reduce combinator (map (fn [graph] (into #{} (filter (force nodes)) (protos/predecessors graph node))) graphs))

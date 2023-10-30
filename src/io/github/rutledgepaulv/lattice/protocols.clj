@@ -20,119 +20,119 @@
   (sink [this]
     "Returns the sink node of the edge."))
 
-(defprotocol ComputedNodes
+(defprotocol ComputeNodes
   (nodes [this]
     "Returns the nodes of the graph as a set."))
 
-(defprotocol ComputedSuccessors
+(defprotocol ComputeSuccessors
   (successors [this node]
     "Returns the nodes that follow the given node."))
 
-(defprotocol ComputedPredecessors
+(defprotocol ComputePredecessors
   (predecessors [this node]
     "Returns the nodes that precede the given node."))
 
-(defprotocol ComputedInboundEdges
+(defprotocol ComputeInboundEdges
   (inbound-edges [this node]
     "Returns the inbound edges of the given node."))
 
-(defprotocol ComputedOutboundEdges
+(defprotocol ComputeOutboundEdges
   (outbound-edges [this node]
     "Returns the outbound edges of the given node."))
 
-(defprotocol ComputedAdjacency
+(defprotocol ComputeAdjacency
   (adjacency [this]
     "Returns the graph in adjacency form (map of predecessor to set of successors)."))
 
-(defprotocol ComputedEdges
+(defprotocol ComputeEdges
   (edges [this]
     "Returns the edges of the graph."))
 
-(defprotocol ComputedEdgesOf
+(defprotocol ComputeEdgesOf
   (edges-of [this node]
     "Returns the edges of the given node."))
 
-(defprotocol ComputedDegree
+(defprotocol ComputeDegree
   (degree [this node]
     "Returns the number of edges of the given node."))
 
-(defprotocol ComputedNeighbors
+(defprotocol ComputeNeighbors
   (neighbors [this node]
     "Returns the neighboring nodes of the given node as a set."))
 
-(defprotocol ComputedSources
+(defprotocol ComputeSources
   (sources [this]
     "Returns the source nodes of the graph."))
 
-(defprotocol ComputedSinks
+(defprotocol ComputeSinks
   (sinks [this]
     "Returns the sink nodes of the graph."))
 
-(defprotocol ComputedProducers
+(defprotocol ComputeProducers
   (producers [this]
     "Returns the nodes that have outbound edges."))
 
-(defprotocol ComputedConsumers
+(defprotocol ComputeConsumers
   (consumers [this]
     "Returns the nodes that have inbound edges."))
 
-(defprotocol ComputedInterior
+(defprotocol ComputeInterior
   (interior [this]
     "Returns the nodes that have both inbound and outbound edges."))
 
-(defprotocol ComputedInverse
+(defprotocol ComputeInverse
   (inverse [this]
     "Returns a new graph containing reversed edges."))
 
-(defprotocol ComputedTransitiveClosure
+(defprotocol ComputeTransitiveClosure
   (transitive-closure [this]
     "Returns a new graph containing additional edges expressing the transitive closure."))
 
-(defprotocol ComputedBridges
+(defprotocol ComputeBridges
   (bridges [this]
     "Returns the edges that if removed would alter the transitive closure."))
 
-(defprotocol ComputedComponents
+(defprotocol ComputeComponents
   (components [this]
     "Returns the connected components of the graph."))
 
-(defprotocol ComputedRoot
+(defprotocol ComputeRoot
   (root [this]
     "Returns the root node of the graph."))
 
-(defprotocol ComputedBranches
+(defprotocol ComputeBranches
   (branches [this]
     "A tree oriented alias of `producers`"))
 
-(defprotocol ComputedLeaves
+(defprotocol ComputeLeaves
   (leaves [this]
     "A tree oriented alias of `sinks`"))
 
-(defprotocol ComputedParent
+(defprotocol ComputeParent
   (parent [this node]
     "Returns the parent of the node if there is only one parent, else throws an exception."))
 
-(defprotocol ComputedChildren
+(defprotocol ComputeChildren
   (children [this node]
     "A tree oriented alias of `successors`"))
 
-(defprotocol ComputedAncestors
+(defprotocol ComputeAncestors
   (ancestors [this node]
     "Returns a lazy sequence of all the ancestors of the given node."))
 
-(defprotocol ComputedDescendants
+(defprotocol ComputeDescendants
   (descendants [this node]
     "Returns a lazy sequence of all the descendants of the given node."))
 
-(defprotocol ComputedOptimize
+(defprotocol ComputeOptimize
   (optimize [this]
     "Returns a new graph with the same semantics but optimized for performance."))
 
-(defprotocol ComputedSupergraph
+(defprotocol ComputeSupergraph
   (supergraph? [this other]
     "Returns true if the given graph is a supergraph of the other graph."))
 
-(defprotocol ComputedSubgraph
+(defprotocol ComputeSubgraph
   (subgraph? [this other]
     "Returns true if the given graph is a subgraph of the other graph."))
 

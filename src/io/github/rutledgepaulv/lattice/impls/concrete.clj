@@ -17,19 +17,19 @@
 
 (extend-type IPersistentMap
 
-  protos/ComputedNodes
+  protos/ComputeNodes
   (nodes [this]
     (sets/union (set (keys this)) (set (mapcat identity (vals this)))))
 
-  protos/ComputedSuccessors
+  protos/ComputeSuccessors
   (successors [this node]
     (set (get this node #{})))
 
-  protos/ComputedAdjacency
+  protos/ComputeAdjacency
   (adjacency [this]
     this)
 
-  protos/ComputedInverse
+  protos/ComputeInverse
   (inverse [this]
     (let [reversed
           (reduce-kv
@@ -45,26 +45,26 @@
             {:result {} :nodes #{}}
             this)]
       (reify
-        protos/ComputedNodes
+        protos/ComputeNodes
         (nodes [_]
           (:nodes reversed))
-        protos/ComputedSuccessors
+        protos/ComputeSuccessors
         (successors [_ node]
           (set (get-in reversed [:result node] #{})))
-        protos/ComputedPredecessors
+        protos/ComputePredecessors
         (predecessors [_ node]
           (set (get this node #{}))))))
 
-  protos/ComputedOptimize
+  protos/ComputeOptimize
   (optimize [this]
     (let [reversed (delay (protos/inverse this))]
       (reify
-        protos/ComputedNodes
+        protos/ComputeNodes
         (nodes [_]
           (protos/nodes (force reversed)))
-        protos/ComputedSuccessors
+        protos/ComputeSuccessors
         (successors [_ node]
           (protos/successors this node))
-        protos/ComputedPredecessors
+        protos/ComputePredecessors
         (predecessors [_ node]
           (protos/successors (force reversed) node))))))
