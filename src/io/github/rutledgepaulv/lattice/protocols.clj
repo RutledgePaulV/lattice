@@ -88,10 +88,6 @@
   (transitive-closure [this]
     "Returns a new graph containing additional edges expressing the transitive closure."))
 
-(defprotocol ComputeBridges
-  (bridges [this]
-    "Returns the edges that if removed would alter the transitive closure."))
-
 (defprotocol ComputeComponents
   (components [this]
     "Returns the connected components of the graph."))
@@ -196,4 +192,10 @@
 (defprotocol ComputeDescendantSubgraph
   (descendants-subgraph [this node]
     "Returns the subgraph containing the given node and all of its descendants"))
+
+(defprotocol ComputeShortestPaths
+  (shortest-paths [this weight-fn]
+    "Computes a mapping of pairs of connected nodes to the shortest paths between them.
+     Weight functions should accept a source node and a sink node and return some numerical
+     cost to traverse the edge between them."))
 

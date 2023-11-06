@@ -117,11 +117,6 @@
   [graph]
   (protos/transitive-closure graph))
 
-(defn bridges
-  "Returns the edges whose removal would introduce another connected component and alter the transitive closure."
-  [graph]
-  (protos/bridges graph))
-
 (defn components
   "Returns the connected component subgraphs of the given graph."
   [graph]
@@ -271,7 +266,7 @@
   (protos/bidirectional graph))
 
 (defn component-subgraph
-  "Returns the subgraph containing the given node and any ancestors or descendants."
+  "Returns the subgraph containing the given node and any nodes in the same connected component."
   [graph node]
   (protos/component-subgraph graph node))
 
@@ -284,6 +279,15 @@
   "Returns the subgraph containing the given node and all of its ancestors."
   [graph node]
   (protos/ancestors-subgraph graph node))
+
+(defn shortest-paths
+  "Returns a mapping of connected nodes to a map containing the distance and
+  shortest path between those connected nodes. A weight-fn may be supplied to
+  customize the cost of traversing each edge."
+  ([graph]
+   (shortest-paths graph (constantly 1)))
+  ([graph weight-fn]
+   (protos/shortest-paths graph weight-fn)))
 
 (defn reduce
   "Returns the output channel which will receive maps containing the state of the reduction,

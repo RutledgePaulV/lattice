@@ -143,24 +143,24 @@
 (extend-protocol protos/ComputeComponentSubgraph
   Object
   (component-subgraph [this node]
-    (if (contains? (protos/nodes this) node)
-      (let [nodes
-            (delay (sets/union
-                     (set (protos/descendants this node))
-                     (set (protos/ancestors this node))
-                     #{node}))]
-        (reify
-          Graph
-          protos/ComputeNodes
-          (nodes [_]
-            (force nodes))
-          protos/ComputeSuccessors
-          (successors [_ node]
-            (sets/intersection (force nodes) (protos/successors this node)))
-          protos/ComputePredecessors
-          (predecessors [_ node]
-            (sets/intersection (force nodes) (protos/predecessors this node)))))
-      (combinators/empty))))
+    (let [nodes
+          (-> this
+              (protos/bidirectional)
+              (protos/transitive-closure)
+              (protos/successors node)
+              (conj node)
+              (delay))]
+      (reify
+        Graph
+        protos/ComputeNodes
+        (nodes [_]
+          (force nodes))
+        protos/ComputeSuccessors
+        (successors [_ node]
+          (sets/intersection (force nodes) (protos/successors this node)))
+        protos/ComputePredecessors
+        (predecessors [_ node]
+          (sets/intersection (force nodes) (protos/predecessors this node)))))))
 
 (extend-protocol protos/ComputeDescendantSubgraph
   Object
@@ -399,7 +399,11 @@
             (into #{}
                   (comp
                     (mapcat (fn [node] (protos/successors this node)))
-                    (mapcat (fn [old-node] (get-in (force it) [:-> old-node] #{}))))
+                    (mapcat (fn transform [old-node]
+                              (let [new-successors (get-in (force it) [:-> old-node] #{})]
+                                (if (empty? new-successors)
+                                  (mapcat transform (protos/successors this old-node))
+                                  new-successors)))))
                   old-nodes)))
         protos/ComputePredecessors
         (predecessors [_ node]
@@ -407,7 +411,11 @@
             (into #{}
                   (comp
                     (mapcat (fn [node] (protos/predecessors this node)))
-                    (mapcat (fn [old-node] (get-in (force it) [:-> old-node] #{}))))
+                    (mapcat (fn transform [old-node]
+                              (let [new-predecessors (get-in (force it) [:-> old-node] #{})]
+                                (if (empty? new-predecessors)
+                                  (mapcat transform (protos/predecessors this old-node))
+                                  new-predecessors)))))
                   old-nodes)))))))
 
 (extend-protocol protos/ComputeTransitivePreservingFilterNodes
@@ -508,6 +516,54 @@
                     (update :seen sets/union component)))))
           {:results #{} :seen #{}}
           (protos/nodes this))))))
+
+(extend-protocol protos/ComputeShortestPaths
+  Object
+  (shortest-paths [this weight-fn]
+    (let [ns        (protos/nodes this)
+          weight-fn (or weight-fn (constantly 1))
+          es        (protos/edges this)
+          {:keys [dist next]}
+          (as-> {:dist {} :next {}} reduction
+                (reduce
+                  (fn [{:keys [dist next]} [u v]]
+                    (cond
+                      (contains? es [u v])
+                      {:dist (assoc dist [u v] (weight-fn u v))
+                       :next (assoc next [u v] v)}
+
+                      (= u v)
+                      {:dist (assoc dist [v v] 0)
+                       :next (assoc next [v v] v)}
+
+                      :otherwise
+                      {:dist (assoc dist [u v] Double/POSITIVE_INFINITY)
+                       :next (assoc next [u v] nil)}))
+                  reduction
+                  (for [i ns j ns] [i j]))
+                (reduce
+                  (fn [{:keys [dist next] :as agg} [i j k]]
+                    (let [candidate
+                          (+ (get dist [i k] Double/POSITIVE_INFINITY)
+                             (get dist [k j] Double/POSITIVE_INFINITY))]
+                      (if (> (get dist [i j] Double/POSITIVE_INFINITY) candidate)
+                        {:dist (assoc dist [i j] candidate)
+                         :next (assoc next [i j] (get next [i k]))}
+                        agg)))
+                  reduction
+                  (for [k ns i ns j ns] [i j k])))]
+      (->> (for [u ns v ns]
+             [[u v] (if (get next [u v])
+                      (loop [u u path [u]]
+                        (if-not (= u v)
+                          (let [new-u (get next [u v])]
+                            (recur new-u (conj path new-u)))
+                          path))
+                      [])])
+           (remove (comp empty? second))
+           (map (fn [[k v]] [k {:distance (get dist k) :path v}]))
+           (into {})))))
+
 
 (defmethod print-dup Graph [obj ^Writer writer]
   (print-dup (protos/adjacency obj) writer))
