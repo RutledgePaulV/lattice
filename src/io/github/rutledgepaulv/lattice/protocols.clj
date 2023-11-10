@@ -112,12 +112,20 @@
   (children [this node]
     "A tree oriented alias of `successors`"))
 
-(defprotocol ComputeAncestors
-  (ancestors [this node]
+(defprotocol ComputeAncestorsDepthFirst
+  (ancestors-depth-first [this node]
     "Returns a lazy sequence of all the ancestors of the given node."))
 
-(defprotocol ComputeDescendants
-  (descendants [this node]
+(defprotocol ComputeAncestorsBreadthFirst
+  (ancestors-breadth-first [this node]
+    "Returns a lazy sequence of all the ancestors of the given node."))
+
+(defprotocol ComputeDescendantsDepthFirst
+  (descendants-depth-first [this node]
+    "Returns a lazy sequence of all the descendants of the given node."))
+
+(defprotocol ComputeDescendantsBreadthFirst
+  (descendants-breadth-first [this node]
     "Returns a lazy sequence of all the descendants of the given node."))
 
 (defprotocol ComputeOptimize

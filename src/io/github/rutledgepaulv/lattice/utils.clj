@@ -1,4 +1,4 @@
-(ns io.github.rutledgepaulv.lattice.combinators
+(ns io.github.rutledgepaulv.lattice.utils
   "Functions for combining graphs in various abstract forms. No attempt
    is made to provide concrete implementations of these functions, but you
    may be interested in running io.github.rutledgepaulv.lattice.core/optimize
@@ -6,7 +6,8 @@
   (:require [clojure.set :as sets]
             [io.github.rutledgepaulv.lattice.protocols :as protos])
   (:refer-clojure :exclude [empty])
-  (:import (io.github.rutledgepaulv.lattice.protocols Graph)))
+  (:import (clojure.lang PersistentQueue)
+           (io.github.rutledgepaulv.lattice.protocols Graph)))
 
 (defn empty []
   (reify
@@ -62,3 +63,43 @@
        (reduce merge-entry (or a {}) (seq b)))))
   ([a b & more]
    (reduce deep-merge (or a {}) (cons b more))))
+
+(defn graph-seq-depth-first [branch? children root]
+  (let [sentinel (Object.)]
+    (->> (iterate
+           (fn [{:keys [queue visited] :as agg}]
+             (if (empty? queue)
+               (assoc agg :node sentinel)
+               (let [head (peek queue)]
+                 (if (contains? visited head)
+                   (assoc agg :queue (pop queue))
+                   (cond-> agg
+                     (branch? head)
+                     (assoc :queue (-> PersistentQueue/EMPTY (into (children head)) (into (pop queue))))
+                     :always (-> (assoc :visited (conj visited head)) (assoc :node head)))))))
+           {:queue   (into PersistentQueue/EMPTY (list root))
+            :visited #{}})
+         (rest)
+         (map :node)
+         (take-while (clojure.core/complement #{sentinel}))
+         (dedupe))))
+
+(defn graph-seq-breadth-first [branch? children root]
+  (let [sentinel (Object.)]
+    (->> (iterate
+           (fn [{:keys [queue visited] :as agg}]
+             (if (empty? queue)
+               (assoc agg :node sentinel)
+               (let [head (peek queue)]
+                 (if (contains? visited head)
+                   (assoc agg :queue (pop queue))
+                   (cond-> agg
+                     (branch? head)
+                     (assoc :queue (into (pop queue) (children head)))
+                     :always (-> (assoc :visited (conj visited head)) (assoc :node head)))))))
+           {:queue   (into PersistentQueue/EMPTY (list root))
+            :visited #{}})
+         (rest)
+         (map :node)
+         (take-while (clojure.core/complement #{sentinel}))
+         (dedupe))))

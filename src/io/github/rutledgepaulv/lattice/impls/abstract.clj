@@ -6,7 +6,7 @@
    io.github.rutledgepaulv.lattice.impls.concrete namespace."
   (:refer-clojure :exclude [ancestors complement descendants])
   (:require [clojure.set :as sets]
-            [io.github.rutledgepaulv.lattice.combinators :as combinators]
+            [io.github.rutledgepaulv.lattice.utils :as combinators]
             [io.github.rutledgepaulv.lattice.protocols :as protos])
   (:import (io.github.rutledgepaulv.lattice.protocols Graph)
            (java.io Writer)))
@@ -113,32 +113,37 @@
       (predecessors [_ node]
         (protos/successors this node)))))
 
-(extend-protocol protos/ComputeDescendants
+(extend-protocol protos/ComputeDescendantsDepthFirst
   Object
-  (descendants [this node]
-    (loop [results #{} frontier (protos/successors this node)]
-      (if (empty? frontier)
-        results
-        (let [node (first frontier)]
-          (recur
-            (conj results node)
-            (into (disj frontier node)
-                  (remove results)
-                  (protos/successors this node))))))))
+  (descendants-depth-first [this node]
+    (let [memo (memoize (fn [node] (protos/successors this node)))]
+      (cond->> (combinators/graph-seq-depth-first (comp not-empty memo) memo node)
+               (contains? (memo node) node)
+               (cons node)))))
 
-(extend-protocol protos/ComputeAncestors
+(extend-protocol protos/ComputeAncestorsDepthFirst
   Object
-  (ancestors [this node]
-    (loop [results  #{}
-           frontier (protos/predecessors this node)]
-      (if (empty? frontier)
-        results
-        (let [node (first frontier)]
-          (recur
-            (conj results node)
-            (into (disj frontier node)
-                  (remove results)
-                  (protos/predecessors this node))))))))
+  (ancestors-depth-first [this node]
+    (let [memo (memoize (fn [node] (protos/predecessors this node)))]
+      (cond->> (combinators/graph-seq-depth-first (comp not-empty memo) memo node)
+               (contains? (memo node) node)
+               (cons node)))))
+
+(extend-protocol protos/ComputeDescendantsBreadthFirst
+  Object
+  (descendants-breadth-first [this node]
+    (let [memo (memoize (fn [node] (protos/successors this node)))]
+      (cond->> (combinators/graph-seq-breadth-first (comp not-empty memo) memo node)
+               (contains? (memo node) node)
+               (cons node)))))
+
+(extend-protocol protos/ComputeAncestorsBreadthFirst
+  Object
+  (ancestors-breadth-first [this node]
+    (let [memo (memoize (fn [node] (protos/predecessors this node)))]
+      (cond->> (combinators/graph-seq-breadth-first (comp not-empty memo) memo node)
+               (contains? (memo node) node)
+               (cons node)))))
 
 (extend-protocol protos/ComputeComponentSubgraph
   Object
@@ -166,7 +171,7 @@
   Object
   (descendants-subgraph [this node]
     (if (contains? (protos/nodes this) node)
-      (let [nodes (delay (conj (set (protos/descendants this node)) node))]
+      (let [nodes (delay (conj (set (protos/descendants-depth-first this node)) node))]
         (reify
           Graph
           protos/ComputeNodes
@@ -184,7 +189,7 @@
   Object
   (ancestors-subgraph [this node]
     (if (contains? (protos/nodes this) node)
-      (let [nodes (delay (conj (set (protos/ancestors this node)) node))]
+      (let [nodes (delay (conj (set (protos/ancestors-depth-first this node)) node))]
         (reify
           Graph
           protos/ComputeNodes
@@ -433,10 +438,10 @@
         (protos/nodes this))
       protos/ComputeSuccessors
       (successors [_ node]
-        (into #{} (protos/descendants this node)))
+        (into #{} (protos/descendants-depth-first this node)))
       protos/ComputePredecessors
       (predecessors [_ node]
-        (into #{} (protos/ancestors this node))))))
+        (into #{} (protos/ancestors-depth-first this node))))))
 
 (extend-protocol protos/ComputeComplete
   Object
@@ -564,10 +569,8 @@
            (map (fn [[k v]] [k {:distance (get dist k) :path v}]))
            (into {})))))
 
-
 (defmethod print-dup Graph [obj ^Writer writer]
   (print-dup (protos/adjacency obj) writer))
 
 (defmethod print-method Graph [obj ^Writer writer]
   (print-method (protos/adjacency obj) writer))
-

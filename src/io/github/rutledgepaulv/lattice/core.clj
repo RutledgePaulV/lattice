@@ -8,10 +8,10 @@
   (:require [clojure.core.async :as async]
             [io.github.rutledgepaulv.lattice.protocols :as protos]
             [io.github.rutledgepaulv.lattice.process :as proc]
-            [io.github.rutledgepaulv.lattice.combinators :as combinators]
+            [io.github.rutledgepaulv.lattice.utils :as utils]
             [io.github.rutledgepaulv.lattice.impls.abstract]
             [io.github.rutledgepaulv.lattice.impls.concrete])
-  (:refer-clojure :exclude [ancestors descendants reduce complement empty]))
+  (:refer-clojure :exclude [reduce complement empty]))
 
 (defn optimize
   "Returns a graph with the same semantics but that may be optimized
@@ -23,7 +23,7 @@
 (defn empty
   "Returns an abstract empty graph. {} would be fine too."
   []
-  (combinators/empty))
+  (utils/empty))
 
 (defn nodes
   "Returns the nodes of the graph as a set."
@@ -85,17 +85,17 @@
 (defn union
   "Returns the union of the given graphs."
   [& graphs]
-  (combinators/union graphs))
+  (utils/union graphs))
 
 (defn intersection
   "Returns the intersection of the given graphs."
   [& graphs]
-  (combinators/intersection graphs))
+  (utils/intersection graphs))
 
 (defn difference
   "Returns the difference between the given graphs."
   [& graphs]
-  (combinators/difference graphs))
+  (utils/difference graphs))
 
 (defn subgraph?
   "Is graph1 a subgraph of graph2?"
@@ -172,15 +172,25 @@
   [graph node]
   (protos/children graph node))
 
-(defn ancestors
+(defn ancestors-depth-first
   "Returns a lazy sequence of all the ancestors of the given node."
   [graph node]
-  (protos/ancestors graph node))
+  (protos/ancestors-depth-first graph node))
 
-(defn descendants
+(defn descendants-depth-first
   "Returns a lazy sequence of all the descendants of the given node."
   [graph node]
-  (protos/descendants graph node))
+  (protos/descendants-depth-first graph node))
+
+(defn ancestors-breadth-first
+  "Returns a lazy sequence of all the ancestors of the given node."
+  [graph node]
+  (protos/ancestors-breadth-first graph node))
+
+(defn descendants-breadth-first
+  "Returns a lazy sequence of all the descendants of the given node."
+  [graph node]
+  (protos/descendants-breadth-first graph node))
 
 (defn topological-sort
   "Returns the topological sort of the graph if it is a DAG, else nil."
@@ -305,7 +315,7 @@
   ([graph reducer init output-chan]
    (reduce graph reducer init output-chan true))
   ([graph reducer init output-chan close?]
-   (reduce graph reducer init output-chan close? combinators/deep-merge))
+   (reduce graph reducer init output-chan close? utils/deep-merge))
   ([graph reducer init output-chan close? combiner]
    (proc/reduce-and-combine graph (proc/computational-applicator reducer) init output-chan close? combiner)))
 
@@ -325,7 +335,7 @@
   ([graph reducer init output-chan]
    (reduce-async graph reducer init output-chan true))
   ([graph reducer init output-chan close?]
-   (reduce-async graph reducer init output-chan close? combinators/deep-merge))
+   (reduce-async graph reducer init output-chan close? utils/deep-merge))
   ([graph reducer init output-chan close? combiner]
    (proc/reduce-and-combine graph (proc/async-applicator reducer) init output-chan close? combiner)))
 
@@ -345,6 +355,6 @@
   ([graph reducer init output-chan]
    (reduce-blocking graph reducer init output-chan true))
   ([graph reducer init output-chan close?]
-   (reduce-blocking graph reducer init output-chan close? combinators/deep-merge))
+   (reduce-blocking graph reducer init output-chan close? utils/deep-merge))
   ([graph reducer init output-chan close? combiner]
    (proc/reduce-and-combine graph (proc/blocking-applicator reducer) init output-chan close? combiner)))
