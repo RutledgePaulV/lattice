@@ -1,6 +1,6 @@
 ## Lattice
 
-An elegant library for working with directed graphs in Clojure.
+An algebra for working with directed graphs in Clojure.
 
 ---
 

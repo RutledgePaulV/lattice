@@ -29,12 +29,12 @@
       protos/ComputeSuccessors
       (successors [_ node]
         (if (contains? (force nodes) node)
-          (reduce combinator (map (fn [graph] (into #{} (filter (force nodes)) (protos/successors graph node))) graphs))
+          (reduce combinator (map (fn [graph] (protos/successors graph node)) graphs))
           #{}))
       protos/ComputePredecessors
       (predecessors [_ node]
         (if (contains? (force nodes) node)
-          (reduce combinator (map (fn [graph] (into #{} (filter (force nodes)) (protos/predecessors graph node))) graphs))
+          (reduce combinator (map (fn [graph] (protos/successors graph node)) graphs))
           #{})))))
 
 (defn union [graphs]

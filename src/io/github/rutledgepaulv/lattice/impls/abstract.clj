@@ -34,11 +34,12 @@
 (extend-protocol protos/ComputeAdjacency
   Object
   (adjacency [this]
-    (reduce
-      (fn [adjacency node]
-        (assoc adjacency node (protos/successors this node)))
-      {}
-      (protos/nodes this))))
+    (persistent!
+      (reduce
+        (fn [adjacency node]
+          (assoc! adjacency node (protos/successors this node)))
+        (transient {})
+        (protos/nodes this)))))
 
 (extend-protocol protos/ComputeEdges
   Object
@@ -81,12 +82,12 @@
 (extend-protocol protos/ComputeProducers
   Object
   (producers [this]
-    (into #{} (remove (fn [node] (protos/successors this node))) (protos/nodes this))))
+    (into #{} (remove (fn [node] (empty? (protos/successors this node)))) (protos/nodes this))))
 
 (extend-protocol protos/ComputeConsumers
   Object
   (consumers [this]
-    (into #{} (remove (fn [node] (protos/predecessors this node))) (protos/nodes this))))
+    (into #{} (remove (fn [node] (empty? (protos/predecessors this node)))) (protos/nodes this))))
 
 (extend-protocol protos/ComputeInterior
   Object
@@ -97,6 +98,11 @@
               (or (empty? (protos/successors this node))
                   (empty? (protos/predecessors this node)))))
           (protos/nodes this))))
+
+(extend-protocol protos/ComputeExterior
+  Object
+  (exterior [this]
+    (sets/union (protos/sinks this) (protos/sources this))))
 
 (extend-protocol protos/ComputeInverse
   Object
@@ -233,7 +239,8 @@
   (optimize [this]
     (let [memoized-nodes        (memoize (fn [] (protos/nodes this)))
           memoized-successors   (memoize (fn [node] (protos/successors this node)))
-          memoized-predecessors (memoize (fn [node] (protos/predecessors this node)))]
+          memoized-predecessors (memoize (fn [node] (protos/predecessors this node)))
+          memoized-adjacency    (memoize (fn [] (protos/adjacency this)))]
       (reify
         Graph
         protos/ComputeNodes
@@ -244,7 +251,10 @@
           (memoized-successors node))
         protos/ComputePredecessors
         (predecessors [_ node]
-          (memoized-predecessors node))))))
+          (memoized-predecessors node))
+        protos/ComputeAdjacency
+        (adjacency [_]
+          (memoized-adjacency))))))
 
 (extend-protocol protos/ComputeSupergraph
   Object
@@ -568,6 +578,34 @@
            (remove (comp empty? second))
            (map (fn [[k v]] [k {:distance (get dist k) :path v}]))
            (into {})))))
+
+(extend-protocol protos/ComputeEquals
+  Object
+  (eq [this other]
+    (and
+      (= (protos/nodes this) (protos/nodes other))
+      (= (protos/edges this) (protos/edges other)))))
+
+(extend-protocol protos/ComputeSorted
+  Object
+  (sorted [this comparator]
+    (reify Graph
+      protos/ComputeNodes
+      (nodes [_]
+        (into (sorted-set-by comparator) (protos/nodes this)))
+      protos/ComputeSuccessors
+      (successors [_ node]
+        (into (sorted-set-by comparator) (protos/successors this node)))
+      protos/ComputePredecessors
+      (predecessors [_ node]
+        (into (sorted-set-by comparator) (protos/predecessors this node)))
+      protos/ComputeAdjacency
+      (adjacency [self]
+        (reduce
+          (fn [adjacency node]
+            (assoc adjacency node (protos/successors self node)))
+          (sorted-map-by comparator)
+          (protos/nodes self))))))
 
 (defmethod print-dup Graph [obj ^Writer writer]
   (print-dup (protos/adjacency obj) writer))

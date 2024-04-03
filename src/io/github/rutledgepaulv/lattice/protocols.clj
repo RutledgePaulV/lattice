@@ -24,6 +24,14 @@
   (nodes [this]
     "Returns the nodes of the graph as a set."))
 
+(defprotocol ComputeEquals
+  (eq [this other]
+    "Returns a boolean indicating if the graph is equal to another."))
+
+(defprotocol ComputeSorted
+  (sorted [this comparator]
+    "Returns a new graph where successors, predecessors, nodes, edges, and adjacency representations will always be sorted."))
+
 (defprotocol ComputeSuccessors
   (successors [this node]
     "Returns the nodes that follow the given node."))
@@ -79,6 +87,10 @@
 (defprotocol ComputeInterior
   (interior [this]
     "Returns the nodes that have both inbound and outbound edges."))
+
+(defprotocol ComputeExterior
+  (exterior [this]
+    "Returns the nodes that act as either sources or sinks."))
 
 (defprotocol ComputeInverse
   (inverse [this]

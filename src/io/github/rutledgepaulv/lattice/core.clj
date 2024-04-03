@@ -25,6 +25,27 @@
   []
   (utils/empty))
 
+(defn eq
+  "Returns true if graphs have the same nodes and edges."
+  ([_] true)
+  ([graph1 graph2]
+   (protos/eq graph1 graph2))
+  ([graph1 graph2 & graphs]
+   (clojure.core/reduce
+     (fn [result [prev-graph next-graph]]
+       (if (protos/eq prev-graph next-graph)
+         result
+         (reduced false)))
+     true
+     (partition 2 1 (cons graph1 (cons graph2 graphs))))))
+
+(defn sorted
+  "Returns a graph upon which other calls will produce sorted collections."
+  ([graph]
+   (protos/sorted graph compare))
+  ([graph comparator]
+   (protos/sorted graph comparator)))
+
 (defn nodes
   "Returns the nodes of the graph as a set."
   [graph]
@@ -146,6 +167,11 @@
   "Returns the set of nodes are neither sources nor sinks."
   [graph]
   (protos/interior graph))
+
+(defn exterior
+  "Returns the set of nodes are either sources nor sinks."
+  [graph]
+  (protos/exterior graph))
 
 (defn root
   "Returns the root node of the tree if the graph is also a tree, else nil."
