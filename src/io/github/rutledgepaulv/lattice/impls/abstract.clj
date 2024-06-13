@@ -607,6 +607,63 @@
           (sorted-map-by comparator)
           (protos/nodes self))))))
 
+
+(extend-protocol protos/ComputeCycles
+  Object
+  ; johnson's algorithm for finding all elementary cycles ported from python's networkx
+  ; https://networkx.org/documentation/networkx-2.4/_modules/networkx/algorithms/cycles.html#simple_cycles
+  (cycles [this]
+    (loop [components (protos/components this) cycles #{}]
+      (if (empty? components)
+        cycles
+        (recur (rest components)
+               (let [component  (protos/filter-nodes this (first components))
+                     start-node (first (protos/nodes component))]
+                 (loop [cycles  cycles
+                        path    [start-node]
+                        blocked #{start-node}
+                        closed  #{}
+                        B       {}
+                        stack   [[start-node (protos/successors this start-node)]]]
+                   (if (empty? stack)
+                     cycles
+                     (let [[this-node successors] (peek stack)]
+                       (if (not-empty successors)
+                         (let [next-node (first successors)]
+                           (cond
+                             (= next-node start-node)
+                             (recur (conj cycles path) path blocked (into closed path) B (conj (pop stack) [this-node (disj successors next-node)]))
+                             (not (contains? blocked next-node))
+                             (recur cycles
+                                    (conj path next-node)
+                                    (conj blocked next-node)
+                                    (disj closed next-node)
+                                    B
+                                    (-> (pop stack)
+                                        (conj [this-node (disj successors next-node)])
+                                        (conj [next-node (protos/successors this next-node)])))))
+                         (if (contains? closed this-node)
+                           (let [[blocked B]
+                                 (loop [stack   #{this-node}
+                                        blocked blocked
+                                        B       B]
+                                   (if (empty? stack)
+                                     [blocked B]
+                                     (let [node (first stack)]
+                                       (recur
+                                         (disj (sets/union stack (get B node #{})) node)
+                                         (disj blocked node)
+                                         (dissoc B node)))))]
+                             (recur cycles (pop path) blocked closed B (pop stack)))
+                           (let [B' (reduce
+                                      (fn [b' successor]
+                                        (if (contains? (protos/successors this successor) this-node)
+                                          b'
+                                          (update b' successor (fnil conj #{}) this-node)))
+                                      B
+                                      successors)]
+                             (recur cycles (pop path) blocked closed B' (pop stack))))))))))))))
+
 (defmethod print-dup Graph [obj ^Writer writer]
   (print-dup (protos/adjacency obj) writer))
 

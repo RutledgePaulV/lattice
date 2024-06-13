@@ -332,3 +332,11 @@
           expected "{:a #{:b :c :d}, :b #{:c}, :c #{}, :d #{:b}}"
           sorted   (lattice/sorted g compare)]
       (is (= expected (pr-str (lattice/adjacency sorted)))))))
+
+(deftest cycles-test
+  (is (= #{} (lattice/cycles {})))
+  (is (= #{[:q :g :n] [:c :d :a]}
+         (lattice/cycles
+           {:a [:b :c] :c [:d] :d [:a]
+            :q [:g] :g [:n] :n [:q]})))
+  )

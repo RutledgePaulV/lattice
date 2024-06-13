@@ -219,3 +219,6 @@
      Weight functions should accept a source node and a sink node and return some numerical
      cost to traverse the edge between them."))
 
+(defprotocol ComputeCycles
+  (cycles [this]
+    "Returns all the sets of edges which form a cycle."))

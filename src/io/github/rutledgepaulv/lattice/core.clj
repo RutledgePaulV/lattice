@@ -198,6 +198,14 @@
   [graph node]
   (protos/children graph node))
 
+(defn cycles
+  "Returns a set of elementary cycles in the graph. An elementary cycle is a
+   path which only contains distinct nodes and forms a cycle if you return to
+   the first node once you reach the end. Every rotation of an elementary cycle
+   is also a cycle."
+  [graph]
+  (protos/cycles graph))
+
 (defn ancestors-depth-first
   "Returns a lazy sequence of all the ancestors of the given node."
   [graph node]
@@ -219,7 +227,9 @@
   (protos/descendants-breadth-first graph node))
 
 (defn topological-sort
-  "Returns the topological sort of the graph if it is a DAG, else nil."
+  "Returns the topological sort of the graph if it is a DAG, else nil. If this
+   returns nil you can use io.github.rutledgepaulv.lattice.core/cycles to find
+   the paths in the graph which make it cyclical and seek to eliminate them."
   [graph]
   (protos/topological-sort graph))
 
