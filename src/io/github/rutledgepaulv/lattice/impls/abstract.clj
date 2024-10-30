@@ -5,7 +5,8 @@
    implementations included with this library can be found in the
    io.github.rutledgepaulv.lattice.impls.concrete namespace."
   (:refer-clojure :exclude [ancestors complement descendants])
-  (:require [clojure.set :as sets]
+  (:require clojure.pprint
+            [clojure.set :as sets]
             [io.github.rutledgepaulv.lattice.utils :as combinators]
             [io.github.rutledgepaulv.lattice.protocols :as protos])
   (:import (io.github.rutledgepaulv.lattice.protocols Graph)
@@ -669,3 +670,7 @@
 
 (defmethod print-method Graph [obj ^Writer writer]
   (print-method (protos/adjacency obj) writer))
+
+(defmethod clojure.pprint/simple-dispatch Graph [graph]
+  (clojure.pprint/simple-dispatch
+   (io.github.rutledgepaulv.lattice.protocols/adjacency graph)))

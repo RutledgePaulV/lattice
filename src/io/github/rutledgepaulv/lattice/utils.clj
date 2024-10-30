@@ -34,7 +34,7 @@
       protos/ComputePredecessors
       (predecessors [_ node]
         (if (contains? (force nodes) node)
-          (reduce combinator (map (fn [graph] (protos/successors graph node)) graphs))
+          (reduce combinator (map (fn [graph] (protos/predecessors graph node)) graphs))
           #{})))))
 
 (defn union [graphs]
